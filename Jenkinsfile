@@ -2,10 +2,13 @@ pipeline {
     agent any
 
     environment {
-        ENV         = 'TEST'
-        TEST_DB_HOST = 'localhost'
-        TEST_DB_PORT = '5432'
-        TEST_DB_NAME = 'tododb_test'
+        ENV              = 'TEST'
+        TEST_DB_HOST     = 'localhost'
+        TEST_DB_PORT     = '5432'
+        TEST_DB_NAME     = 'tododb_test'
+        TEST_DB_USER     = credentials('TEST_DB_USER')
+        TEST_DB_PASSWORD = credentials('TEST_DB_PASSWORD')
+        JWT_SECRET       = credentials('JWT_SECRET')
     }
 
     stages {
