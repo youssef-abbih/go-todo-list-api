@@ -13,7 +13,9 @@ import (
 var DB *gorm.DB
 
 func InitDB() {
-	_ = godotenv.Load("../.env")
+	if os.Getenv("ENV") == "" {
+		_ = godotenv.Load("../.env")
+	}
 	env := os.Getenv("ENV")
 	var user, password, host, dbname, port string
 

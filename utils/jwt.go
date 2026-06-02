@@ -45,9 +45,8 @@ func StoreSecretKey() {
 }
 
 func LoadJWTSecretkey() string{
-	err := godotenv.Load("../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if os.Getenv("JWT_SECRET") == "" {
+		_ = godotenv.Load("../.env")
 	}
 	secretKey := os.Getenv("JWT_SECRET")
 	if secretKey == "" {
