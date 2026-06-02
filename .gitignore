@@ -6,7 +6,8 @@
 *.dylib
 *.out
 *.app
-
+# env
+.env
 # Test binaries
 *.test
 
