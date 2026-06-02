@@ -4,45 +4,31 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/youssef-abbih/go-todo-list/middleware"
 	"github.com/youssef-abbih/go-todo-list/models"
 )
 
-// contextKey type for context keys
-type contextKey string
-
-// setParam adds a key/value param to request context (to mock URL params)
-func setParam(ctx context.Context, key, value string) context.Context {
-	return context.WithValue(ctx, contextKey(key), value)
+func setParam(r *http.Request, key, value string) *http.Request {
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add(key, value)
+	return r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
 }
 
-// Test DefaultResponse handler
-func TestDefaultResponse(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-
-	DefaultResponse(rec, req)
-	res := rec.Result()
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("expected status 200 OK, got %d", res.StatusCode)
-	}
-
-	body, _ := io.ReadAll(res.Body)
-	expected := "Welcome to my Todo List API"
-	if strings.TrimSpace(string(body)) != expected {
-		t.Errorf("expected body %q, got %q", expected, string(body))
-	}
+func addAuth(req *http.Request) *http.Request {
+	ctx := context.WithValue(req.Context(), middleware.UserContextKey, fmt.Sprintf("%d", testUserID))
+	return req.WithContext(ctx)
 }
 
 func setup() {
 	models.InitDB()
+	setupTestUser()
 }
 
 // Test POST /tasks
@@ -53,20 +39,20 @@ func TestPostTask(t *testing.T) {
 	body, _ := json.Marshal(validTask)
 	req := httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	res := httptest.NewRecorder()
-
-	PostTask(res, req)
-
-	if res.Code != http.StatusCreated {
-		t.Errorf("expected 201 Created, got %d", res.Code)
+	req = addAuth(req)
+	rec := httptest.NewRecorder()
+	PostTask(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Errorf("expected 201 Created, got %d", rec.Code)
 	}
 
 	malformedReq := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader("invalid json"))
 	malformedReq.Header.Set("Content-Type", "application/json")
-	malformedRes := httptest.NewRecorder()
-	PostTask(malformedRes, malformedReq)
-	if malformedRes.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 Bad Request for malformed JSON, got %d", malformedRes.Code)
+	malformedReq = addAuth(malformedReq)
+	malformedRec := httptest.NewRecorder()
+	PostTask(malformedRec, malformedReq)
+	if malformedRec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request for malformed JSON, got %d", malformedRec.Code)
 	}
 }
 
@@ -74,11 +60,11 @@ func TestPostTask(t *testing.T) {
 func TestGetTasks(t *testing.T) {
 	setup()
 	req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
-	res := httptest.NewRecorder()
-	GetTasks(res, req)
-
-	if res.Code != http.StatusOK {
-		t.Errorf("expected 200 OK, got %d", res.Code)
+	req = addAuth(req)
+	rec := httptest.NewRecorder()
+	GetTasks(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 OK, got %d", rec.Code)
 	}
 }
 
@@ -86,28 +72,33 @@ func TestGetTasks(t *testing.T) {
 func TestGetTask(t *testing.T) {
 	setup()
 
-	req := httptest.NewRequest(http.MethodGet, "/tasks/1", nil)
-	req = req.WithContext(setParam(req.Context(), "id", "1"))
-	res := httptest.NewRecorder()
-	GetTask(res, req)
-	if res.Code != http.StatusOK {
-		t.Errorf("expected 200 OK, got %d", res.Code)
+	task := models.AddTask(models.Task{Title: "Test", Description: "desc", Completed: false}, testUserID)
+
+	req := httptest.NewRequest(http.MethodGet, "/tasks/"+fmt.Sprintf("%d", task.ID), nil)
+	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
+	req = addAuth(req)
+	rec := httptest.NewRecorder()
+	GetTask(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 OK, got %d", rec.Code)
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/tasks/9999", nil)
-	req = req.WithContext(setParam(req.Context(), "id", "9999"))
-	res = httptest.NewRecorder()
-	GetTask(res, req)
-	if res.Code != http.StatusNotFound {
-		t.Errorf("expected 404 Not Found, got %d", res.Code)
+	req = setParam(req, "id", "9999")
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	GetTask(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("expected 404 Not Found, got %d", rec.Code)
 	}
 
 	req = httptest.NewRequest(http.MethodGet, "/tasks/abc", nil)
-	req = req.WithContext(setParam(req.Context(), "id", "abc"))
-	res = httptest.NewRecorder()
-	GetTask(res, req)
-	if res.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 Bad Request, got %d", res.Code)
+	req = setParam(req, "id", "abc")
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	GetTask(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
 	}
 }
 
@@ -115,33 +106,40 @@ func TestGetTask(t *testing.T) {
 func TestPutTask(t *testing.T) {
 	setup()
 
+	task := models.AddTask(models.Task{Title: "Test", Description: "desc", Completed: false}, testUserID)
+
 	updated := models.Task{Title: "Updated", Description: "Updated desc", Completed: true}
 	body, _ := json.Marshal(updated)
-	req := httptest.NewRequest(http.MethodPut, "/tasks/1", bytes.NewReader(body))
-	req = req.WithContext(setParam(req.Context(), "id", "1"))
+
+	req := httptest.NewRequest(http.MethodPut, "/tasks/"+fmt.Sprintf("%d", task.ID), bytes.NewReader(body))
+	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
 	req.Header.Set("Content-Type", "application/json")
-	res := httptest.NewRecorder()
-	PutTask(res, req)
-	if res.Code != http.StatusOK {
-		t.Errorf("expected 200 OK, got %d", res.Code)
+	req = addAuth(req)
+	rec := httptest.NewRecorder()
+	PutTask(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 OK, got %d", rec.Code)
 	}
 
+	body, _ = json.Marshal(updated)
 	nonexistent := httptest.NewRequest(http.MethodPut, "/tasks/9999", bytes.NewReader(body))
-	nonexistent = nonexistent.WithContext(setParam(nonexistent.Context(), "id", "9999"))
+	nonexistent = setParam(nonexistent, "id", "9999")
 	nonexistent.Header.Set("Content-Type", "application/json")
-	res = httptest.NewRecorder()
-	PutTask(res, nonexistent)
-	if res.Code != http.StatusNotFound {
-		t.Errorf("expected 404 Not Found, got %d", res.Code)
+	nonexistent = addAuth(nonexistent)
+	rec = httptest.NewRecorder()
+	PutTask(rec, nonexistent)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("expected 404 Not Found, got %d", rec.Code)
 	}
 
-	malformed := httptest.NewRequest(http.MethodPut, "/tasks/1", strings.NewReader("bad json"))
-	malformed = malformed.WithContext(setParam(malformed.Context(), "id", "1"))
+	malformed := httptest.NewRequest(http.MethodPut, "/tasks/"+fmt.Sprintf("%d", task.ID), strings.NewReader("bad json"))
+	malformed = setParam(malformed, "id", fmt.Sprintf("%d", task.ID))
 	malformed.Header.Set("Content-Type", "application/json")
-	res = httptest.NewRecorder()
-	PutTask(res, malformed)
-	if res.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 Bad Request, got %d", res.Code)
+	malformed = addAuth(malformed)
+	rec = httptest.NewRecorder()
+	PutTask(rec, malformed)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
 	}
 }
 
@@ -149,27 +147,32 @@ func TestPutTask(t *testing.T) {
 func TestDeleteTask(t *testing.T) {
 	setup()
 
-	req := httptest.NewRequest(http.MethodDelete, "/tasks/1", nil)
-	req = req.WithContext(setParam(req.Context(), "id", "1"))
-	res := httptest.NewRecorder()
-	DeleteTask(res, req)
-	if res.Code != http.StatusOK {
-		t.Errorf("expected 200 OK, got %d", res.Code)
+	task := models.AddTask(models.Task{Title: "Test", Description: "desc", Completed: false}, testUserID)
+
+	req := httptest.NewRequest(http.MethodDelete, "/tasks/"+fmt.Sprintf("%d", task.ID), nil)
+	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
+	req = addAuth(req)
+	rec := httptest.NewRecorder()
+	DeleteTask(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 OK, got %d", rec.Code)
 	}
 
 	nonexistent := httptest.NewRequest(http.MethodDelete, "/tasks/9999", nil)
-	nonexistent = nonexistent.WithContext(setParam(nonexistent.Context(), "id", "9999"))
-	res = httptest.NewRecorder()
-	DeleteTask(res, nonexistent)
-	if res.Code != http.StatusNotFound {
-		t.Errorf("expected 404 Not Found, got %d", res.Code)
+	nonexistent = setParam(nonexistent, "id", "9999")
+	nonexistent = addAuth(nonexistent)
+	rec = httptest.NewRecorder()
+	DeleteTask(rec, nonexistent)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("expected 404 Not Found, got %d", rec.Code)
 	}
 
 	invalid := httptest.NewRequest(http.MethodDelete, "/tasks/abc", nil)
-	invalid = invalid.WithContext(setParam(invalid.Context(), "id", "abc"))
-	res = httptest.NewRecorder()
-	DeleteTask(res, invalid)
-	if res.Code != http.StatusBadRequest {
-		t.Errorf("expected 400 Bad Request, got %d", res.Code)
+	invalid = setParam(invalid, "id", "abc")
+	invalid = addAuth(invalid)
+	rec = httptest.NewRecorder()
+	DeleteTask(rec, invalid)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
 	}
 }

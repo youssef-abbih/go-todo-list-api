@@ -3,13 +3,31 @@ package models
 import (
 	"testing"
 	"time"
+	"fmt"
 )
+
+func setupTestData() (userID uint, taskID uint) {
+    InitDB()
+    
+    // Create a user first
+    user := User{Email: fmt.Sprintf("test_%d@test.com", time.Now().UnixNano())}
+    user.Password, _ = HashPassword("password")
+    created, _ := AddUser(user)
+    userID = created.ID
+    
+    // Create a task for that user
+    task := Task{Title: "Test Task", Description: "This is a test", Completed: false}
+    added := AddTask(task, userID)
+    taskID = added.ID
+    
+    return userID, taskID
+}
 
 // TestAddTask verifies that a task is correctly added and given an ID
 func TestAddTask(t *testing.T) {
 	// Reset the DB (in-memory or test DB setup is better, but this is simple)
 	InitDB()
-	var userID uint = 1
+	userID, _ := setupTestData()
 	
 	task := Task{
 		Title:       "Test Task",
@@ -48,8 +66,7 @@ func TestAddTask(t *testing.T) {
 
 func TestGetTasks(t *testing.T) {
 	InitDB()
-
-	var existingUserID uint = 1
+	existingUserID, _ := setupTestData()
 
 	tasks := GetTasks(existingUserID)
 
@@ -67,8 +84,7 @@ func TestGetTasks(t *testing.T) {
 func TestGetTaskByID(t *testing.T) {
 
 	InitDB()
-	var existingID uint = 1
-	var existingUserID uint = 1
+	existingUserID , existingID := setupTestData()
 	task, returned := GetTaskByID(existingID, existingUserID)
 
 	if !returned {
@@ -98,8 +114,7 @@ func TestDeleteTask(t *testing.T) {
 	// Initialize DB and seed some tasks
 	InitDB()
 
-	var existingID uint = 1
-	var existingUserID uint = 1
+	existingUserID , existingID := setupTestData()
 	// Try deleting a task with ID 1 (assuming it exists after InitDB)
 	deletedTask, deleted := DeleteTask(existingID, existingUserID)
 
@@ -138,8 +153,8 @@ func TestUpdateTask(t *testing.T) {
 		Description: "This is a test",
 		Completed:   false,
 	}
-	var existingID uint = 1
-	var existingUserID uint = 1
+
+	existingUserID , existingID := setupTestData()
 
 	task, updated := UpdateTask(existingID, existingUserID, updatedTask)
 
