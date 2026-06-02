@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         ENV              = 'TEST'
-        TEST_DB_HOST     = 'localhost'
+        TEST_DB_HOST     = 'host.docker.internal'
         TEST_DB_PORT     = '5432'
         TEST_DB_NAME     = 'tododb_test'
         TEST_DB_USER     = credentials('TEST_DB_USER')
@@ -27,7 +27,7 @@ pipeline {
                         -e POSTGRES_USER=${TEST_DB_USER} \
                         -e POSTGRES_PASSWORD=${TEST_DB_PASSWORD} \
                         -e POSTGRES_DB=${TEST_DB_NAME} \
-                        -p 5432:5432 \
+                        -p 5433:5432 \
                         postgres:15
 
                     echo "Waiting for PostgreSQL to be ready..."
