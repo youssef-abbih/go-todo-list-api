@@ -27,15 +27,16 @@ func DefaultResponse(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {string} string "DB unreachable"
 // @Router /health [get]
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	
 	sqlDB, _ := models.DB.DB()
 	err := sqlDB.Ping()
 	if err != nil {
 		http.Error(w, "DB unreachable", http.StatusInternalServerError)
-		return
-	}
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
