@@ -27,7 +27,7 @@ pipeline {
                         -e POSTGRES_USER=${TEST_DB_USER} \
                         -e POSTGRES_PASSWORD=${TEST_DB_PASSWORD} \
                         -e POSTGRES_DB=${TEST_DB_NAME} \
-                        -p 5433:5432 \
+                        -p 5432:5432 \
                         postgres:15
 
                     echo "Waiting for PostgreSQL to be ready..."
