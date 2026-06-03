@@ -15,9 +15,11 @@ import (
 
 var testUserID uint
 var testToken string
+var testEmail string
 
 func setupTestUser() {
-    user := models.User{Email: fmt.Sprintf("test_%d@test.com", time.Now().UnixNano()), Password: "password"}
+	testEmail = fmt.Sprintf("test_%d@test.com", time.Now().UnixNano())
+    user := models.User{Email: testEmail, Password: "password"}
     user.Password, _ = models.HashPassword(user.Password)
     created, _ := models.AddUser(user)
     testUserID = created.ID
@@ -61,7 +63,7 @@ func TestRegister(t *testing.T) {
 		t.Errorf("expected 400, got %d", rec.Code)
 	}
 
-	body_duplicate_user := `{"email": "test@test.com", "password": "password"}`
+	body_duplicate_user := `{"email": "` + testEmail + `", "password": "password"}`
 	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(body_duplicate_user))
 	req.Header.Set("Content-Type", "application/json")
 	rec = httptest.NewRecorder()
