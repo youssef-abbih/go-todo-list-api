@@ -53,14 +53,9 @@ func InitDB() {
 	DB = db
 
 	// Auto-migrate schema
-	if err := db.AutoMigrate(&User{}); err != nil {
-		log.Fatalf("Failed to migrate User: %v", err)
+	if err := db.AutoMigrate(&User{}, &Task{}); err != nil {
+		log.Printf("Migration warning: %v", err)
 	}
-
-	if err := db.AutoMigrate(&Task{}); err != nil {
-		log.Fatalf("Failed to migrate Task: %v", err)
-	}
-	
 }
 
 func SeedTestData(db *gorm.DB){
