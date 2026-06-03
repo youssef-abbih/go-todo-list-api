@@ -3,12 +3,13 @@ pipeline {
 
     environment {
         ENV              = 'TEST'
-        TEST_DB_HOST     = 'host.docker.internal'
         TEST_DB_PORT     = '5432'
         TEST_DB_NAME     = 'tododb_test'
         TEST_DB_USER     = credentials('TEST_DB_USER')
         TEST_DB_PASSWORD = credentials('TEST_DB_PASSWORD')
         JWT_SECRET       = credentials('JWT_SECRET')
+        NET_NAME         = "todo-net-${BUILD_NUMBER}"
+        HOST_WORKSPACE   = "/var/lib/docker/volumes/jenkins_home/_data/workspace/go-todo-pipeline"
     }
 
     stages {
@@ -19,19 +20,24 @@ pipeline {
             }
         }
 
-        stage('Start Test Database') {
+        stage('Setup Network & DB') {
             steps {
                 sh '''
+                    docker network create ${NET_NAME}
+
                     docker run -d \
                         --name test-postgres-${BUILD_NUMBER} \
+                        --network ${NET_NAME} \
                         -e POSTGRES_USER=${TEST_DB_USER} \
                         -e POSTGRES_PASSWORD=${TEST_DB_PASSWORD} \
                         -e POSTGRES_DB=${TEST_DB_NAME} \
-                        -p 5433:5432 \
                         postgres:15
 
                     echo "Waiting for PostgreSQL to be ready..."
-                    sleep 5
+                    until docker exec test-postgres-${BUILD_NUMBER} pg_isready -U ${TEST_DB_USER} -d ${TEST_DB_NAME}; do
+                        echo "Postgres is still starting up..."
+                        sleep 1
+                    done
                 '''
             }
         }
@@ -39,12 +45,10 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    HOST_WORKSPACE="/var/lib/docker/volumes/jenkins_home/_data/workspace/go-todo-pipeline"
-
                     docker run --rm \
                         --network ${NET_NAME} \
-                        -v ${WORKSPACE}:/app \
-                        -v ${WORKSPACE}/.go-cache:/go/pkg/mod \
+                        -v ${HOST_WORKSPACE}:/app \
+                        -v ${HOST_WORKSPACE}/.go-cache:/go/pkg/mod \
                         -w /app \
                         -e ENV=TEST \
                         -e TEST_DB_HOST=test-postgres-${BUILD_NUMBER} \
@@ -64,6 +68,7 @@ pipeline {
             sh '''
                 docker stop test-postgres-${BUILD_NUMBER} || true
                 docker rm test-postgres-${BUILD_NUMBER} || true
+                docker network rm ${NET_NAME} || true
             '''
         }
         success {
