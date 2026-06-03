@@ -39,11 +39,19 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    export ENV=TEST
-                    export TEST_DB_HOST=localhost
-                    export TEST_DB_PORT=5432
-                    export TEST_DB_NAME=tododb_test
-                    go test ./... -v
+                    docker run --rm \
+                        --network ${NET_NAME} \
+                        -v ${WORKSPACE}:/app \
+                        -v ${WORKSPACE}/.go-cache:/go/pkg/mod \
+                        -w /app \
+                        -e ENV=TEST \
+                        -e TEST_DB_HOST=test-postgres-${BUILD_NUMBER} \
+                        -e TEST_DB_PORT=5432 \
+                        -e TEST_DB_NAME=${TEST_DB_NAME} \
+                        -e TEST_DB_USER=${TEST_DB_USER} \
+                        -e TEST_DB_PASSWORD=${TEST_DB_PASSWORD} \
+                        -e JWT_SECRET=${JWT_SECRET} \
+                        golang:1.24 go test ./... -v
                 '''
             }
         }
