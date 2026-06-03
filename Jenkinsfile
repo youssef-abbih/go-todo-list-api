@@ -39,6 +39,8 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
+                    HOST_WORKSPACE="/var/lib/docker/volumes/jenkins_home/_data/workspace/go-todo-pipeline"
+
                     docker run --rm \
                         --network ${NET_NAME} \
                         -v ${WORKSPACE}:/app \
