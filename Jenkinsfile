@@ -82,7 +82,7 @@ pipeline {
 
         stage('Build docker image') {
             steps {  
-                sh 'docker build -t $APP_NAME:latest .'
+                sh 'docker build --network=host --no-cache -t $APP_NAME:latest .'
             }
         }
 
