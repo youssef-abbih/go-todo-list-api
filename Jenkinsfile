@@ -10,7 +10,7 @@ pipeline {
         JWT_SECRET       = credentials('JWT_SECRET')
         NET_NAME         = "todo-net-${BUILD_NUMBER}"
         HOST_WORKSPACE   = "/var/lib/docker/volumes/jenkins_home/_data/workspace/go-todo-pipeline"
-        APP_NAME         = "go-todo-list-api"
+        APP_NAME         = "go-todo-list-api:latest"
         NEXUS_URL        = 'localhost:5000'
     }
 
@@ -24,7 +24,7 @@ pipeline {
 
         stage('Setup Network & DB') {
             steps {
-                sh '''
+                sh """
                     docker network create ${NET_NAME}
 
                     docker run -d \
@@ -40,13 +40,13 @@ pipeline {
                         echo "Postgres is still starting up..."
                         sleep 1
                     done
-                '''
+                """
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh '''
+                sh """
                     docker run --rm \
                         --network ${NET_NAME} \
                         -v ${HOST_WORKSPACE}:/app \
@@ -60,7 +60,7 @@ pipeline {
                         -e TEST_DB_PASSWORD=${TEST_DB_PASSWORD} \
                         -e JWT_SECRET=${JWT_SECRET} \
                         golang:1.24 go test ./... -v -coverprofile=coverage.out
-                '''
+                """
             }
         }
 
@@ -88,26 +88,26 @@ pipeline {
 
         stage('Scan Docker Image') {
             steps {
-                sh '''
+                sh """
                     docker run --rm \
                         -v /var/run/docker.sock:/var/run/docker.sock \
                         aquasec/trivy:latest image \
                         --exit-code 1 \
                         --severity HIGH,CRITICAL \
                         --no-progress \
-                        go-todo-api:latest
-                '''
+                        ${IMAGE_NAME}
+                """
             }
         }
 
         stage('Push to Nexus') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIALS', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-                    sh '''
+                    sh """
                         echo $NEXUS_PASS | docker login localhost:5000 --username $NEXUS_USER --password-stdin
-                        docker tag go-todo-api:latest localhost:5000/go-todo-api:latest
-                        docker push localhost:5000/go-todo-api:latest
-                    '''
+                        docker tag ${IMAGE_NAME} localhost:5000/${IMAGE_NAME}
+                        docker push localhost:5000/${IMAGE_NAME}
+                    """
                 }
             }
         }
@@ -115,11 +115,11 @@ pipeline {
 
     post {
         always {
-            sh '''
+            sh """
                 docker stop test-postgres-${BUILD_NUMBER} || true
                 docker rm test-postgres-${BUILD_NUMBER} || true
                 docker network rm ${NET_NAME} || true
-            '''
+            """
         }
         success {
             echo 'All tests passed!'
