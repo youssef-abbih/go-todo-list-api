@@ -10,6 +10,8 @@ pipeline {
         JWT_SECRET       = credentials('JWT_SECRET')
         NET_NAME         = "todo-net-${BUILD_NUMBER}"
         HOST_WORKSPACE   = "/var/lib/docker/volumes/jenkins_home/_data/workspace/go-todo-pipeline"
+        APP_NAME         = "go-todo-list-api"
+        NEXUS_URL        = 'localhost:5000'
     }
 
     stages {
@@ -57,8 +59,57 @@ pipeline {
                         -e TEST_DB_USER=${TEST_DB_USER} \
                         -e TEST_DB_PASSWORD=${TEST_DB_PASSWORD} \
                         -e JWT_SECRET=${JWT_SECRET} \
-                        golang:1.24 go test ./... -v
+                        golang:1.24 go test ./... -v -coverprofile=coverage.out
                 '''
+            }
+        }
+
+        stage('Static Analysis & Security (SAST)'){
+            steps{
+                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
+                    sh "sonar-scanner -Dsonar.login=\$'' \
+                    -Dsonar.host.url=https://sonarcloud.io/\
+                    -Dsonar.projectName=youssef-abbih/go-todo-list-api \
+                    Dsonar.organization=https://sonarcloud.io/organizations/youssef-abbih/ \
+                    -Dsonar.projectKey=youssef-abbih_go-todo-list-api \
+                    -Dsonar.projectName=go-todo-list-api \
+                    -Dsonar.sources=. \
+                    -Dsonar.exclusions=docs/** \
+                    -Dsonar.go.coverage.reportPaths=coverage.out \
+                    -Dsonar.go.version=1.24 "
+                }
+            }
+        }
+
+        stage('Build docker image') {
+            steps {  
+                sh 'docker build -t $APP_NAME:latest .'
+            }
+        }
+
+        stage('Scan Docker Image') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest image \
+                        --exit-code 1 \
+                        --severity HIGH,CRITICAL \
+                        --no-progress \
+                        go-todo-api:latest
+                '''
+            }
+        }
+
+        stage('Push to Nexus') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'NEXUS_CREDENTIALS', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+                    sh '''
+                        echo $NEXUS_PASS | docker login localhost:5000 --username $NEXUS_USER --password-stdin
+                        docker tag go-todo-api:latest localhost:5000/go-todo-api:latest
+                        docker push localhost:5000/go-todo-api:latest
+                    '''
+                }
             }
         }
     }
