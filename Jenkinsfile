@@ -10,7 +10,7 @@ pipeline {
         JWT_SECRET       = credentials('JWT_SECRET')
         NET_NAME         = "todo-net-${BUILD_NUMBER}"
         HOST_WORKSPACE   = "/var/lib/docker/volumes/jenkins_home/_data/workspace/go-todo-pipeline"
-        APP_NAME         = "go-todo-list-api:latest"
+        IMAGE_NAME         = "go-todo-list-api:latest"
         NEXUS_URL        = 'localhost:5000'
     }
 
@@ -82,7 +82,7 @@ pipeline {
 
         stage('Build docker image') {
             steps {  
-                sh 'docker build --network=host --no-cache -t $APP_NAME:latest .'
+                sh 'docker build --network=host --no-cache -t $IMAGE_NAME:latest .'
             }
         }
 
