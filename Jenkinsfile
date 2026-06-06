@@ -70,9 +70,8 @@ pipeline {
                     sh "sonar-scanner -Dsonar.login=\$'' \
                     -Dsonar.host.url=https://sonarcloud.io/\
                     -Dsonar.projectName=youssef-abbih/go-todo-list-api \
-                    -Dsonar.organization=https://sonarcloud.io/organizations/youssef-abbih/ \
+                    -Dsonar.organization=youssef-abbih \
                     -Dsonar.projectKey=youssef-abbih_go-todo-list-api \
-                    -Dsonar.projectName=go-todo-list-api \
                     -Dsonar.sources=. \
                     -Dsonar.exclusions=docs/** \
                     -Dsonar.go.coverage.reportPaths=coverage.out \
