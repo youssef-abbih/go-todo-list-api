@@ -73,7 +73,7 @@ pipeline {
                     -Dsonar.organization=youssef-abbih \
                     -Dsonar.projectKey=youssef-abbih_go-todo-list-api \
                     -Dsonar.sources=. \
-                    -Dsonar.exclusions=docs/** ,.go-cache/** \
+                    -Dsonar.exclusions=docs/**,.go-cache/** \
                     -Dsonar.go.coverage.reportPaths=coverage.out \
                     -Dsonar.go.version=1.24 """
                 }
