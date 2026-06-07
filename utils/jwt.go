@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 const jwtSecretKey = "JWT_SECRET"
-
+var envFilePath = ".env"
 func generateSecretKey() string {
 	b := make([]byte, 32)
 	_, err := rand.Read(b)
@@ -21,9 +21,8 @@ func generateSecretKey() string {
 
 func StoreSecretKey() {
 	key := generateSecretKey()
-	envPath := ".env"
 
-	data, _ := os.ReadFile(envPath)
+	data, _ := os.ReadFile(envFilePath)
 	lines := []string{}
 	found := false
 
@@ -39,7 +38,7 @@ func StoreSecretKey() {
 		lines = append(lines, jwtSecretKey + "=" + key)
 	}
 	// Write or overwrite the JWT_SECRET line
-	err := os.WriteFile(envPath, []byte(strings.Join(lines, "\n")), 0644)
+	err := os.WriteFile(envFilePath, []byte(strings.Join(lines, "\n")), 0644)
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +46,7 @@ func StoreSecretKey() {
 
 func LoadJWTSecretkey() string{
 	if os.Getenv(jwtSecretKey) == "" {
-		_ = godotenv.Load("../.env")
+		_ = godotenv.Load(envFilePath)
 	}
 	secretKey := os.Getenv(jwtSecretKey)
 	if secretKey == "" {
