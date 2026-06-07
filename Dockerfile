@@ -18,7 +18,7 @@ COPY . .
 RUN go build -o server .
 
 # --- STAGE 2: Create a minimal image to run ---
-FROM alpine:latest
+FROM alpine:3.19
 
 WORKDIR /root/
 

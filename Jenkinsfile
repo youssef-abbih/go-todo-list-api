@@ -59,7 +59,7 @@ pipeline {
                         -e TEST_DB_USER=${TEST_DB_USER} \
                         -e TEST_DB_PASSWORD=${TEST_DB_PASSWORD} \
                         -e JWT_SECRET=${JWT_SECRET} \
-                        golang:1.25 go test ./... -v -coverprofile=coverage.out
+                        golang:1.25 go test -coverprofile=coverage.out -covermode=atomic -coverpkg=./handlers/...,./middleware/...,./models/...,./utils/... ./...
                 """
             }
         }
