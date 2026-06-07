@@ -67,7 +67,7 @@ pipeline {
         stage('Static Analysis & Security (SAST)'){
             steps{
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                    sh """sonar-scanner -Dsonar.login=\${SONAR_TOKEN} \
+                    sh """sonar-scanner -Dsonar.token=\${SONAR_TOKEN} \
                     -Dsonar.host.url=https://sonarcloud.io \
                     -Dsonar.projectName=youssef-abbih/go-todo-list-api \
                     -Dsonar.organization=youssef-abbih \
