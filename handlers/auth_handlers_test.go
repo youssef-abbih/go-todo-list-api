@@ -1,16 +1,17 @@
 package handlers
+
 import (
-	//"encoding/json"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
-	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/youssef-abbih/go-todo-list/utils"
 	"github.com/youssef-abbih/go-todo-list/models"
+	"github.com/youssef-abbih/go-todo-list/utils"
 )
 
 var testUserID uint
@@ -19,34 +20,33 @@ var testEmail string
 
 func setupTestUser() {
 	testEmail = fmt.Sprintf("test_%d@test.com", time.Now().UnixNano())
-    user := models.User{Email: testEmail, Password: "password"}
-    user.Password, _ = models.HashPassword(user.Password)
-    created, _ := models.AddUser(user)
-    testUserID = created.ID
+	user := models.User{Email: testEmail, Password: "password"}
+	created, _ := models.AddUser(user)
+	testUserID = created.ID
 
-    claims := jwt.MapClaims{
-        "sub":   created.ID,
-        "email": created.Email,
-        "exp":   time.Now().Add(time.Hour).Unix(),
-    }
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    testToken, _ = token.SignedString([]byte(utils.LoadJWTSecretkey()))
+	claims := jwt.MapClaims{
+		"sub":   created.ID,
+		"email": created.Email,
+		"exp":   time.Now().Add(time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	testToken, _ = token.SignedString([]byte(utils.LoadJWTSecretkey()))
 }
 
 func TestRegister(t *testing.T) {
-    setup()
-    setupTestUser()
+	setup()
+	setupTestUser()
 
-    // Test wrong method
-    req := httptest.NewRequest(http.MethodGet, "/users/register", nil)
-    rec := httptest.NewRecorder()
-    Register(rec, req)
-    if rec.Code != http.StatusMethodNotAllowed {
-        t.Errorf("expected 405, got %d", rec.Code)
-    }
+	// Wrong method
+	req := httptest.NewRequest(http.MethodGet, "/users/register", nil)
+	rec := httptest.NewRecorder()
+	Register(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rec.Code)
+	}
 
-	body_missing_email := `{"email": "", "password": "secret"}`
-	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(body_missing_email))
+	// Missing email
+	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "", "password": "secret"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec = httptest.NewRecorder()
 	Register(rec, req)
@@ -54,8 +54,8 @@ func TestRegister(t *testing.T) {
 		t.Errorf("expected 400, got %d", rec.Code)
 	}
 
-	body_missing_password := `{"email": "user@email.com", "password": ""}`
-	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(body_missing_password))
+	// Missing password
+	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "user@email.com", "password": ""}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec = httptest.NewRecorder()
 	Register(rec, req)
@@ -63,13 +63,78 @@ func TestRegister(t *testing.T) {
 		t.Errorf("expected 400, got %d", rec.Code)
 	}
 
-	body_duplicate_user := `{"email": "` + testEmail + `", "password": "password"}`
-	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(body_duplicate_user))
+	// Duplicate user
+	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "`+testEmail+`", "password": "password"}`))
 	req.Header.Set("Content-Type", "application/json")
 	rec = httptest.NewRecorder()
 	Register(rec, req)
 	if rec.Code != 409 {
+		t.Errorf("expected 409, got %d", rec.Code)
+	}
+
+	// Valid registration
+	newEmail := fmt.Sprintf("new_%d@test.com", time.Now().UnixNano())
+	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "`+newEmail+`", "password": "secret123"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	Register(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestLogin(t *testing.T) {
+	setup()
+	setupTestUser()
+
+	// Wrong method
+	req := httptest.NewRequest(http.MethodGet, "/users/login", nil)
+	rec := httptest.NewRecorder()
+	Login(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rec.Code)
+	}
+
+	// Invalid JSON
+	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader("bad json"))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	Login(rec, req)
+	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400, got %d", rec.Code)
 	}
 
+	// Email not found
+	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader(`{"email": "notfound@test.com", "password": "password"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	Login(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400, got %d", rec.Code)
+	}
+
+	// Wrong password
+	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader(`{"email": "`+testEmail+`", "password": "wrongpassword"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	Login(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", rec.Code)
+	}
+
+	// Valid login
+	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader(`{"email": "`+testEmail+`", "password": "password"}`))
+	req.Header.Set("Content-Type", "application/json")
+	rec = httptest.NewRecorder()
+	Login(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+
+	// Check token in response
+	var resp map[string]string
+	json.NewDecoder(rec.Body).Decode(&resp)
+	if resp["Token"] == "" {
+		t.Errorf("expected token in response, got empty")
+	}
 }
