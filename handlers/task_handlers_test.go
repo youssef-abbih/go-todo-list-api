@@ -35,6 +35,7 @@ func setup() {
 func TestPostTask(t *testing.T) {
 	setup()
 
+	// Valid task
 	validTask := models.Task{Title: "Test", Description: "Test desc", Completed: false}
 	body, _ := json.Marshal(validTask)
 	req := httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(body))
@@ -46,6 +47,7 @@ func TestPostTask(t *testing.T) {
 		t.Errorf("expected 201 Created, got %d", rec.Code)
 	}
 
+	// Malformed JSON
 	malformedReq := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader("invalid json"))
 	malformedReq.Header.Set(ContentTypeHeader, MimeJSON)
 	malformedReq = addAuth(malformedReq)
@@ -54,17 +56,61 @@ func TestPostTask(t *testing.T) {
 	if malformedRec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request for malformed JSON, got %d", malformedRec.Code)
 	}
+
+	// Missing title
+	emptyTitle := models.Task{Title: "", Description: "desc", Completed: false}
+	body, _ = json.Marshal(emptyTitle)
+	req = httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(body))
+	req.Header.Set(ContentTypeHeader, MimeJSON)
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	PostTask(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty title, got %d", rec.Code)
+	}
+
+	// Missing description
+	emptyDesc := models.Task{Title: "title", Description: "", Completed: false}
+	body, _ = json.Marshal(emptyDesc)
+	req = httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(body))
+	req.Header.Set(ContentTypeHeader, MimeJSON)
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	PostTask(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty description, got %d", rec.Code)
+	}
+
+	// Wrong method
+	req = httptest.NewRequest(http.MethodGet, "/tasks", nil)
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	PostTask(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rec.Code)
+	}
 }
 
 // Test GET /tasks
 func TestGetTasks(t *testing.T) {
 	setup()
+
+	// Valid
 	req := httptest.NewRequest(http.MethodGet, "/tasks", nil)
 	req = addAuth(req)
 	rec := httptest.NewRecorder()
 	GetTasks(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Errorf("expected 200 OK, got %d", rec.Code)
+	}
+
+	// Wrong method
+	req = httptest.NewRequest(http.MethodPost, "/tasks", nil)
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	GetTasks(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rec.Code)
 	}
 }
 
@@ -74,6 +120,7 @@ func TestGetTask(t *testing.T) {
 
 	task := models.AddTask(models.Task{Title: "Test", Description: "desc", Completed: false}, testUserID)
 
+	// Valid
 	req := httptest.NewRequest(http.MethodGet, "/tasks/"+fmt.Sprintf("%d", task.ID), nil)
 	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
 	req = addAuth(req)
@@ -83,6 +130,7 @@ func TestGetTask(t *testing.T) {
 		t.Errorf("expected 200 OK, got %d", rec.Code)
 	}
 
+	// Not found
 	req = httptest.NewRequest(http.MethodGet, "/tasks/9999", nil)
 	req = setParam(req, "id", "9999")
 	req = addAuth(req)
@@ -92,6 +140,7 @@ func TestGetTask(t *testing.T) {
 		t.Errorf("expected 404 Not Found, got %d", rec.Code)
 	}
 
+	// Invalid ID
 	req = httptest.NewRequest(http.MethodGet, "/tasks/abc", nil)
 	req = setParam(req, "id", "abc")
 	req = addAuth(req)
@@ -99,6 +148,16 @@ func TestGetTask(t *testing.T) {
 	GetTask(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
+	}
+
+	// Wrong method
+	req = httptest.NewRequest(http.MethodPost, "/tasks/1", nil)
+	req = setParam(req, "id", "1")
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	GetTask(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rec.Code)
 	}
 }
 
@@ -108,9 +167,9 @@ func TestPutTask(t *testing.T) {
 
 	task := models.AddTask(models.Task{Title: "Test", Description: "desc", Completed: false}, testUserID)
 
+	// Valid update
 	updated := models.Task{Title: "Updated", Description: "Updated desc", Completed: true}
 	body, _ := json.Marshal(updated)
-
 	req := httptest.NewRequest(http.MethodPut, "/tasks/"+fmt.Sprintf("%d", task.ID), bytes.NewReader(body))
 	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
 	req.Header.Set(ContentTypeHeader, MimeJSON)
@@ -121,6 +180,7 @@ func TestPutTask(t *testing.T) {
 		t.Errorf("expected 200 OK, got %d", rec.Code)
 	}
 
+	// Not found
 	body, _ = json.Marshal(updated)
 	nonexistent := httptest.NewRequest(http.MethodPut, "/tasks/9999", bytes.NewReader(body))
 	nonexistent = setParam(nonexistent, "id", "9999")
@@ -132,6 +192,7 @@ func TestPutTask(t *testing.T) {
 		t.Errorf("expected 404 Not Found, got %d", rec.Code)
 	}
 
+	// Malformed JSON
 	malformed := httptest.NewRequest(http.MethodPut, "/tasks/"+fmt.Sprintf("%d", task.ID), strings.NewReader("bad json"))
 	malformed = setParam(malformed, "id", fmt.Sprintf("%d", task.ID))
 	malformed.Header.Set(ContentTypeHeader, MimeJSON)
@@ -141,6 +202,29 @@ func TestPutTask(t *testing.T) {
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
 	}
+
+	// Missing title
+	emptyTitle := models.Task{Title: "", Description: "desc", Completed: false}
+	body, _ = json.Marshal(emptyTitle)
+	req = httptest.NewRequest(http.MethodPut, "/tasks/"+fmt.Sprintf("%d", task.ID), bytes.NewReader(body))
+	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
+	req.Header.Set(ContentTypeHeader, MimeJSON)
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	PutTask(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for empty title, got %d", rec.Code)
+	}
+
+	// Wrong method
+	req = httptest.NewRequest(http.MethodGet, "/tasks/1", nil)
+	req = setParam(req, "id", "1")
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	PutTask(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rec.Code)
+	}
 }
 
 // Test DELETE /tasks/{id}
@@ -149,6 +233,7 @@ func TestDeleteTask(t *testing.T) {
 
 	task := models.AddTask(models.Task{Title: "Test", Description: "desc", Completed: false}, testUserID)
 
+	// Valid delete
 	req := httptest.NewRequest(http.MethodDelete, "/tasks/"+fmt.Sprintf("%d", task.ID), nil)
 	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
 	req = addAuth(req)
@@ -158,6 +243,7 @@ func TestDeleteTask(t *testing.T) {
 		t.Errorf("expected 200 OK, got %d", rec.Code)
 	}
 
+	// Not found
 	nonexistent := httptest.NewRequest(http.MethodDelete, "/tasks/9999", nil)
 	nonexistent = setParam(nonexistent, "id", "9999")
 	nonexistent = addAuth(nonexistent)
@@ -167,6 +253,7 @@ func TestDeleteTask(t *testing.T) {
 		t.Errorf("expected 404 Not Found, got %d", rec.Code)
 	}
 
+	// Invalid ID
 	invalid := httptest.NewRequest(http.MethodDelete, "/tasks/abc", nil)
 	invalid = setParam(invalid, "id", "abc")
 	invalid = addAuth(invalid)
@@ -174,5 +261,15 @@ func TestDeleteTask(t *testing.T) {
 	DeleteTask(rec, invalid)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 Bad Request, got %d", rec.Code)
+	}
+
+	// Wrong method
+	req = httptest.NewRequest(http.MethodGet, "/tasks/1", nil)
+	req = setParam(req, "id", "1")
+	req = addAuth(req)
+	rec = httptest.NewRecorder()
+	DeleteTask(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405, got %d", rec.Code)
 	}
 }
