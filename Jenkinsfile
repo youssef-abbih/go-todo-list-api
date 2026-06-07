@@ -67,15 +67,15 @@ pipeline {
         stage('Static Analysis & Security (SAST)'){
             steps{
                 withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
-                    sh "sonar-scanner -Dsonar.login=\$'' \
-                    -Dsonar.host.url=https://sonarcloud.io/\
+                    sh """sonar-scanner -Dsonar.login=\${SONAR_TOKEN} \
+                    -Dsonar.host.url=https://sonarcloud.io \
                     -Dsonar.projectName=youssef-abbih/go-todo-list-api \
                     -Dsonar.organization=youssef-abbih \
                     -Dsonar.projectKey=youssef-abbih_go-todo-list-api \
                     -Dsonar.sources=. \
                     -Dsonar.exclusions=docs/** \
                     -Dsonar.go.coverage.reportPaths=coverage.out \
-                    -Dsonar.go.version=1.24 "
+                    -Dsonar.go.version=1.24 """
                 }
             }
         }
