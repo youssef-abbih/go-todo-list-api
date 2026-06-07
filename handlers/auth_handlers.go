@@ -13,7 +13,7 @@ import (
 
 func Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, ErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -59,7 +59,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, ErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 

@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	//"github.com/youssef-abbih/go-todo-list/models"
 )
 
 // Test DefaultResponse handler

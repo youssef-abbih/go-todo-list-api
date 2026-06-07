@@ -29,47 +29,53 @@ func TestAuthMiddleware(t *testing.T) {
 	})
 	handler := AuthMiddleware(next)
 
-	// Case 1: Missing Authorization header
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", rec.Code)
+	// Define the test table structural schema
+	tests := []struct {
+		name           string
+		authHeader     string
+		expectedStatus int
+	}{
+		{
+			name:           "Case 1: Missing Authorization header",
+			authHeader:     "",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Case 2: Wrong format",
+			authHeader:     "Token abc",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Case 3: Invalid token",
+			authHeader:     "Bearer invalidtoken",
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Case 4: Expired token",
+			authHeader:     "Bearer " + generateTestToken("your-secret-key", true),
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name:           "Case 5: Valid token",
+			authHeader:     "Bearer " + generateTestToken("your-secret-key", false),
+			expectedStatus: http.StatusOK,
+		},
 	}
 
-	// Case 2: Wrong format
-	req = httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Token abc")
-	rec = httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", rec.Code)
-	}
+	// Loop over each test case dynamically
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			if tt.authHeader != "" {
+				req.Header.Set("Authorization", tt.authHeader)
+			}
+			
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
 
-	// Case 3: Invalid token
-	req = httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer invalidtoken")
-	rec = httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", rec.Code)
-	}
-
-	// Case 4: Expired token
-	req = httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer "+generateTestToken("your-secret-key", true))
-	rec = httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", rec.Code)
-	}
-
-	// Case 5: Valid token
-	req = httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer "+generateTestToken("your-secret-key", false))
-	rec = httptest.NewRecorder()
-	handler.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", rec.Code)
+			if rec.Code != tt.expectedStatus {
+				t.Errorf("expected %d, got %d", tt.expectedStatus, rec.Code)
+			}
+		})
 	}
 }

@@ -22,7 +22,7 @@ import (
 // @Router /tasks [get]
 func GetTasks(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, ErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -57,7 +57,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 // @Router /tasks [post]
 func PostTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, ErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -94,21 +94,21 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Task ID"
 // @Success 200 {object} models.Task "The requested task"
-// @Failure 400 {string} string "Invalid Task ID"
+// @Failure 400 {string} string ErrInvalidTaskId
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 404 {string} string ResponseTaskNotFound
 // @Security BearerAuth
 // @Router /tasks/{id} [get]
 func GetTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, ErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil || id <= 0 {
-		http.Error(w, "Invalid Task ID", http.StatusBadRequest)
+		http.Error(w, ErrInvalidTaskId, http.StatusBadRequest)
 		return
 	}
 
@@ -137,21 +137,21 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Param id path int true "Task ID"
 // @Success 200 {object} models.Task "Deleted task"
-// @Failure 400 {string} string "Invalid Task ID"
+// @Failure 400 {string} string ErrInvalidTaskId
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 404 {string} string ResponseTaskNotFound
 // @Security BearerAuth
 // @Router /tasks/{id} [delete]
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, ErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil || id <= 0 {
-		http.Error(w, "Invalid Task ID", http.StatusBadRequest)
+		http.Error(w, ErrInvalidTaskId, http.StatusBadRequest)
 		return
 	}
 
@@ -189,14 +189,14 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 // @Router /tasks/{id} [put]
 func PutTask(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(w, ErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		return
 	}
 
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid Task ID", http.StatusBadRequest)
+		http.Error(w, ErrInvalidTaskId, http.StatusBadRequest)
 		return
 	}
 
