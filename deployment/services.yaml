@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-todo-list-api-service
+  labels:
+    app: go-todo-list-api
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30705
+    protocol: TCP
+  selector:
+    app: go-todo-list-api

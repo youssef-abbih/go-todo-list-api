@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-todo-list-api-dep
+  labels:
+    app: go-todo-list-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: go-todo-list-api
+  template:
+    metadata:
+      labels:
+        app: go-todo-list-api
+    spec:
+      imagePullSecrets:
+        - name: nexus-credentials
+      containers:
+      - name: go-todo-list-api-container
+        image: 192.168.1.198:5000/go-todo-list-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ENV
+          value: "PROD"
+        - name: PROD_DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: go-todo-list-api-cm
+              key: PROD_DB_HOST
+        - name: PROD_DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: go-todo-list-api-cm
+              key: PROD_DB_PORT
+        - name: PROD_DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: go-todo-list-api-cm
+              key: PROD_DB_NAME
+        - name: PROD_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: go-todo-list-api-secret
+              key: POSTGRES_USER
+        - name: PROD_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: go-todo-list-api-secret
+              key: POSTGRES_PASSWORD
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: go-todo-list-api-secret
+              key: JWT_SECRET
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          failureThreshold: 3

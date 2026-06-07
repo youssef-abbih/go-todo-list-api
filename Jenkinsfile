@@ -111,6 +111,22 @@ pipeline {
                 }
             }
         }
+        stage('Deploy to K8s') {
+            steps {
+                withCredentials([file(credentialsId: 'KUBECONFIG', variable: 'KUBECONFIG')]) {
+                    sh """
+                        export KUBECONFIG=${KUBECONFIG}
+                        kubectl apply -f deployment/secret.yaml
+                        kubectl apply -f deployment/config-map.yaml
+                        kubectl apply -f deployment/postgres-service.yaml
+                        kubectl apply -f deployment/statefulset.yaml
+                        kubectl apply -f deployment/deployment.yaml
+                        kubectl apply -f deployment/service.yaml
+                        kubectl rollout status deployment/go-todo-list-api-dep --timeout=120s
+                    """
+                }
+            }
+        }
     }
 
     post {

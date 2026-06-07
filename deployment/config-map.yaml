@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-todo-list-api-cm
+data:
+  PROD_DB_HOST: postgres-service
+  PROD_DB_NAME: tasks-prod
+  PROD_DB_PORT: "5432"

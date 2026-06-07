@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: go-todo-list-api-db
+spec:
+  selector:
+    matchLabels:
+      db: go-todo-list-api-db
+  serviceName: "postgres-service"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        db: go-todo-list-api-db
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: postgres
+        image: postgres
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: go-todo-list-api-cm
+              key: PROD_DB_NAME
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: go-todo-list-api-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: go-todo-list-api-secret
+              key: POSTGRES_PASSWORD
+        volumeMounts:
+        - name: postgres-pvc
+          mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-pvc
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "local-path"
+      resources:
+        requests:
+          storage: 1Gi
