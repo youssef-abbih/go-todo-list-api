@@ -1,5 +1,5 @@
 # --- STAGE 1: Build the Go binary ---
-FROM golang:1.26-alpine AS builder
+FROM golang:1.26-alpine3.21 AS builder
 
 WORKDIR /app
 
@@ -14,11 +14,11 @@ RUN go mod download
 # Copy the rest of the source code
 COPY . .
 
-# Build the Go binary
-RUN go build -o server .
+# Build the Go binary with CGO disabled for pristine static linking on minimal Alpine runtimes
+RUN CGO_ENABLED=0 GOOS=linux go build -o server .
 
 # --- STAGE 2: Create a minimal image to run ---
-FROM alpine:3.19
+FROM alpine:3.21
 
 WORKDIR /root/
 
