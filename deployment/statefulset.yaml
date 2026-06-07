@@ -13,6 +13,7 @@ spec:
       labels:
         db: go-todo-list-api-db
     spec:
+      automountServiceAccountToken: false
       terminationGracePeriodSeconds: 10
       containers:
       - name: postgres
@@ -38,6 +39,14 @@ spec:
         volumeMounts:
         - name: postgres-pvc
           mountPath: /var/lib/postgresql
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+            ephemeral-storage: "1Gi"
   volumeClaimTemplates:
   - metadata:
       name: postgres-pvc

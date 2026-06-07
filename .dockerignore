@@ -20,3 +20,10 @@ tasks.db
 
 # Ignore Dockerfile itself (optional)
 Dockerfile
+
+.env
+deployment/
+.go-cache/
+coverage.out
+docker-compose.yaml
+registries.yaml
