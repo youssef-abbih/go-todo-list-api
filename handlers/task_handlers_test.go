@@ -38,7 +38,7 @@ func TestPostTask(t *testing.T) {
 	validTask := models.Task{Title: "Test", Description: "Test desc", Completed: false}
 	body, _ := json.Marshal(validTask)
 	req := httptest.NewRequest(http.MethodPost, "/tasks", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	req = addAuth(req)
 	rec := httptest.NewRecorder()
 	PostTask(rec, req)
@@ -47,7 +47,7 @@ func TestPostTask(t *testing.T) {
 	}
 
 	malformedReq := httptest.NewRequest(http.MethodPost, "/tasks", strings.NewReader("invalid json"))
-	malformedReq.Header.Set("Content-Type", "application/json")
+	malformedReq.Header.Set(ContentTypeHeader, MimeJSON)
 	malformedReq = addAuth(malformedReq)
 	malformedRec := httptest.NewRecorder()
 	PostTask(malformedRec, malformedReq)
@@ -113,7 +113,7 @@ func TestPutTask(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodPut, "/tasks/"+fmt.Sprintf("%d", task.ID), bytes.NewReader(body))
 	req = setParam(req, "id", fmt.Sprintf("%d", task.ID))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	req = addAuth(req)
 	rec := httptest.NewRecorder()
 	PutTask(rec, req)
@@ -124,7 +124,7 @@ func TestPutTask(t *testing.T) {
 	body, _ = json.Marshal(updated)
 	nonexistent := httptest.NewRequest(http.MethodPut, "/tasks/9999", bytes.NewReader(body))
 	nonexistent = setParam(nonexistent, "id", "9999")
-	nonexistent.Header.Set("Content-Type", "application/json")
+	nonexistent.Header.Set(ContentTypeHeader, MimeJSON)
 	nonexistent = addAuth(nonexistent)
 	rec = httptest.NewRecorder()
 	PutTask(rec, nonexistent)
@@ -134,7 +134,7 @@ func TestPutTask(t *testing.T) {
 
 	malformed := httptest.NewRequest(http.MethodPut, "/tasks/"+fmt.Sprintf("%d", task.ID), strings.NewReader("bad json"))
 	malformed = setParam(malformed, "id", fmt.Sprintf("%d", task.ID))
-	malformed.Header.Set("Content-Type", "application/json")
+	malformed.Header.Set(ContentTypeHeader, MimeJSON)
 	malformed = addAuth(malformed)
 	rec = httptest.NewRecorder()
 	PutTask(rec, malformed)

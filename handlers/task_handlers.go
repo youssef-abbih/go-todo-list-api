@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/youssef-abbih/go-todo-list/utils"
 	"github.com/youssef-abbih/go-todo-list/models"
-	
+	"github.com/youssef-abbih/go-todo-list/utils"
 )
 
 // GetTasks godoc
@@ -27,7 +26,6 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	
 	userIDUint, err := utils.GetUserID(r)
 
 	if err != nil {
@@ -38,13 +36,12 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 	tasks := models.GetTasks(userIDUint)
 
 	// 4. Return tasks as JSON
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(ContentTypeHeader, MimeJSON)
 	if tasks == nil {
 		tasks = []models.Task{}
 	}
 	json.NewEncoder(w).Encode(tasks)
 }
-
 
 // PostTask godoc
 // @Summary Create a new task
@@ -85,7 +82,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 
 	created := models.AddTask(newTask, userIDUint)
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(ContentTypeHeader, MimeJSON)
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(created)
 }
@@ -99,7 +96,7 @@ func PostTask(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} models.Task "The requested task"
 // @Failure 400 {string} string "Invalid Task ID"
 // @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Task Not Found"
+// @Failure 404 {string} string ResponseTaskNotFound
 // @Security BearerAuth
 // @Router /tasks/{id} [get]
 func GetTask(w http.ResponseWriter, r *http.Request) {
@@ -122,18 +119,18 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
-	
+
 	task, found := models.GetTaskByID(idUint, userIDUint)
 	if !found {
-		http.Error(w, "Task Not Found", http.StatusNotFound)
+		http.Error(w, ResponseTaskNotFound, http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(ContentTypeHeader, MimeJSON)
 	json.NewEncoder(w).Encode(task)
 }
 
-/// DeleteTask godoc
+// / DeleteTask godoc
 // @Summary Delete task by ID
 // @Description Delete a task by ID, if it belongs to the authenticated user.
 // @Tags tasks
@@ -142,7 +139,7 @@ func GetTask(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} models.Task "Deleted task"
 // @Failure 400 {string} string "Invalid Task ID"
 // @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Task Not Found"
+// @Failure 404 {string} string ResponseTaskNotFound
 // @Security BearerAuth
 // @Router /tasks/{id} [delete]
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
@@ -168,11 +165,11 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	deleted, found := models.DeleteTask(idUint, userIDUint)
 	if !found {
-		http.Error(w, "Task Not Found", http.StatusNotFound)
+		http.Error(w, ResponseTaskNotFound, http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(ContentTypeHeader, MimeJSON)
 	json.NewEncoder(w).Encode(deleted)
 }
 
@@ -187,7 +184,7 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} models.Task "Updated task"
 // @Failure 400 {string} string "Invalid Task ID or JSON"
 // @Failure 401 {string} string "Unauthorized"
-// @Failure 404 {string} string "Task Not Found"
+// @Failure 404 {string} string ResponseTaskNotFound
 // @Security BearerAuth
 // @Router /tasks/{id} [put]
 func PutTask(w http.ResponseWriter, r *http.Request) {
@@ -225,10 +222,10 @@ func PutTask(w http.ResponseWriter, r *http.Request) {
 
 	result, ok := models.UpdateTask(idUint, userIDUint, updatedTask)
 	if !ok {
-		http.Error(w, "Task Not Found", http.StatusNotFound)
+		http.Error(w, ResponseTaskNotFound, http.StatusNotFound)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(ContentTypeHeader, MimeJSON)
 	json.NewEncoder(w).Encode(result)
 }

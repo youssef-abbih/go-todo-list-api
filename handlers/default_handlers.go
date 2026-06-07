@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
 	"github.com/youssef-abbih/go-todo-list/models"
 )
 
@@ -32,7 +33,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	sqlDB, _ := models.DB.DB()
 	err := sqlDB.Ping()
 	if err != nil {
@@ -40,6 +41,6 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(ContentTypeHeader, MimeJSON)
 	json.NewEncoder(w).Encode(map[string]string{"Status": "Ok"})
 }

@@ -47,7 +47,7 @@ func TestRegister(t *testing.T) {
 
 	// Missing email
 	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "", "password": "secret"}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Register(rec, req)
 	if rec.Code != 400 {
@@ -56,7 +56,7 @@ func TestRegister(t *testing.T) {
 
 	// Missing password
 	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "user@email.com", "password": ""}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Register(rec, req)
 	if rec.Code != 400 {
@@ -65,7 +65,7 @@ func TestRegister(t *testing.T) {
 
 	// Duplicate user
 	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "`+testEmail+`", "password": "password"}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Register(rec, req)
 	if rec.Code != 409 {
@@ -75,7 +75,7 @@ func TestRegister(t *testing.T) {
 	// Valid registration
 	newEmail := fmt.Sprintf("new_%d@test.com", time.Now().UnixNano())
 	req = httptest.NewRequest(http.MethodPost, "/users/register", strings.NewReader(`{"email": "`+newEmail+`", "password": "secret123"}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Register(rec, req)
 	if rec.Code != http.StatusOK {
@@ -97,7 +97,7 @@ func TestLogin(t *testing.T) {
 
 	// Invalid JSON
 	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader("bad json"))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Login(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -106,7 +106,7 @@ func TestLogin(t *testing.T) {
 
 	// Email not found
 	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader(`{"email": "notfound@test.com", "password": "password"}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Login(rec, req)
 	if rec.Code != http.StatusBadRequest {
@@ -115,7 +115,7 @@ func TestLogin(t *testing.T) {
 
 	// Wrong password
 	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader(`{"email": "`+testEmail+`", "password": "wrongpassword"}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Login(rec, req)
 	if rec.Code != http.StatusUnauthorized {
@@ -124,7 +124,7 @@ func TestLogin(t *testing.T) {
 
 	// Valid login
 	req = httptest.NewRequest(http.MethodPost, "/users/login", strings.NewReader(`{"email": "`+testEmail+`", "password": "password"}`))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, MimeJSON)
 	rec = httptest.NewRecorder()
 	Login(rec, req)
 	if rec.Code != http.StatusOK {
