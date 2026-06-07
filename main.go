@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 	"github.com/swaggo/http-swagger"
+	// docs is imported side-effect exclusively to register swagger documentation specifications
 	_ "github.com/youssef-abbih/go-todo-list/docs"
 	"github.com/youssef-abbih/go-todo-list/handlers"
 	"github.com/youssef-abbih/go-todo-list/models"

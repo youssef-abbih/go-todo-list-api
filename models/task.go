@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const queryTaskWithUser = "id = ? AND user_id = ?"
+
 // Task represents a single to-do item.
 type Task struct {
 	ID          uint           	`json:"id" gorm:"primaryKey"`
@@ -38,7 +40,7 @@ func AddTask(task Task, userID uint) Task {
 // GetTaskByID retrieves a single task by its ID
 func GetTaskByID(id , userID uint) (Task, bool) {
 	var task Task
-	result := DB.Where("id = ? AND user_id = ?", id, userID).First(&task, id)
+	result := DB.Where(queryTaskWithUser, id, userID).First(&task, id)
 	if result.Error != nil {
 		return Task{}, false
 	}
@@ -48,7 +50,7 @@ func GetTaskByID(id , userID uint) (Task, bool) {
 // UpdateTask updates the task with the given ID
 func UpdateTask(id, userID uint, updated Task) (Task, bool) {
 	var existing Task
-	result := DB.Where("id = ? AND user_id = ?", id, userID).First(&existing)
+	result := DB.Where(queryTaskWithUser, id, userID).First(&existing)
 	if result.Error != nil {
 		return Task{}, false
 	}
@@ -69,7 +71,7 @@ func UpdateTask(id, userID uint, updated Task) (Task, bool) {
 // DeleteTask deletes a task by ID
 func DeleteTask(id, userID uint) (Task, bool) {
 	var task Task
-	result := DB.Where("id = ? AND user_id = ?", id, userID).Unscoped().First(&task)
+	result := DB.Where(queryTaskWithUser, id, userID).Unscoped().First(&task)
 	if result.Error != nil {
 		return Task{}, false
 	}
